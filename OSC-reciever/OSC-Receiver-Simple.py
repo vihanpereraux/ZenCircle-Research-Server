@@ -7,7 +7,7 @@ from datetime import datetime
 from pythonosc import dispatcher # type: ignore
 from pythonosc import osc_server # type: ignore
 
-ip = "127.0.0.1"
+ip = "192.168.1.223"
 port = 5000
 
 def eeg_handler(address: str,*args):
