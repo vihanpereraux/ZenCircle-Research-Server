@@ -56,9 +56,6 @@ def get_response():
   
   for item in db:
     history.append(item)
-    
-  action = "update_document"
-  manage_conversation(username, history)
   
   return jsonify({ 'message': response }), 201
   
