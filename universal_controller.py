@@ -8,6 +8,7 @@ import json
 
 from Model.communication_model import manage_user_data
 from Model.communication_model import manage_conversation
+from Model.communication_model import clean_db
 
 
 app = Flask(__name__)
@@ -47,15 +48,40 @@ def update_user():
 # communication with the lmserver
 @app.route("/get-response", methods=['POST'])
 def get_response():
-  for item in db:
-    history.append(item)
   content = request.args.get('content')
   response = manage_conversation(content, username, history)
   # updates the temp db
   db.insert( {'user': content, 'system': response })
   
-  return jsonify({ 'message': response }), 201
+  for item in db:
+    history.append(item)
+  action = "update_document"
+  convo_history_response = manage_user_data(action, username, history)
   
+  if convo_history_response == 'User updated':
+    return jsonify({ 'message': response, 
+                      'db_response': 'db is updated' }), 201
+  else:
+    return jsonify({ 
+                    'message': response, 
+                    'db_response': 'db is not updated due to an error, check the local connectivity' }), 201
+  
+
+# clean the conversation history
+@app.route("/clean-conversation-history", methods=['POST'])
+def clean_conversation_history():
+  if len(db.all()) == 0:
+    return jsonify({ 'message': 'history alreday cleared' }), 201
+  else:
+    db.truncate()
+    history = []
+    response = clean_db(username, history)
+    if response:  
+      return jsonify({ 'message': 'history cleared' }), 201
+    else:
+      return jsonify({ 'message': 'history not cleared, something happened' }), 500
+
+
 if __name__ == "__main__":
   app.run(debug=True) 
   
