@@ -50,12 +50,9 @@ def get_response():
   for item in db:
     history.append(item)
   content = request.args.get('content')
-  response = manage_conversation(content, history)
+  response = manage_conversation(content, username, history)
   # updates the temp db
   db.insert( {'user': content, 'system': response })
-  
-  for item in db:
-    history.append(item)
   
   return jsonify({ 'message': response }), 201
   
