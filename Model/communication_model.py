@@ -15,7 +15,7 @@ def manage_user_data(action, username, history):
             "$set": {
             'username': username,
             'password' : '9999',
-            'conversation': str(history)
+            'conversation': (history)
             }
         }
         collection.update_one({"username": username}, update_data)
@@ -64,6 +64,59 @@ def manage_conversation(content, username, history):
     # updates the permenant conversation history
     manage_user_data('update_document', username, history)
     return response    
+
+
+history = [
+        {
+            "role": "system", 
+            "content": "You are an intelligent assistant. You always provide well-reasoned answers that are both correct and helpful."
+        },
+        {
+            "role": "user", 
+            "content": "Hello, introduce yourself to someone opening this program for the first time. Be concise."
+        },
+        {
+            "role": "assistant", 
+            "content": "Hi there! I'm an intelligent assistant designed to help you with a variety of tasks. I'm always ready to listen and provide well-reasoned answers based on your needs. Feel free to ask me anything !"
+        },
+    ]
+
+def manage_ai_assistant(user_content):
+    # Point to the local server
+    client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+    
+    history.append({
+        "role": "user", 
+        "content": user_content})
+    
+    completion = client.chat.completions.create(
+        model="TheBloke/Mistral-7B-Instruct-v0.1-GGUF",
+        messages=history,
+        temperature=0.7,
+        stream=True,
+    )
+        
+    new_message = {"role": "assistant", "content": ""}
+    
+    for chunk in completion:
+        if chunk.choices[0].delta.content:
+            print(chunk.choices[0].delta.content, end="", flush=True)
+            new_message["content"] += chunk.choices[0].delta.content
+
+    response = new_message["content"]
+    history.append(new_message)
+    manage_user_data("update_document", "vihanpereraux", history)
+    
+    return response
+
+
+def get_personal_history():
+    conversation_history = []
+    cursor = collection.find({})
+    for document in cursor:
+        conversation_history.append(document)
+    
+    return conversation_history[0]['conversation']
 
 
 def clean_db(username, history):

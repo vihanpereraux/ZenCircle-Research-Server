@@ -1,3 +1,6 @@
+import sys
+sys.setrecursionlimit(10000)
+
 from openai import OpenAI
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -8,6 +11,8 @@ import json
 
 from Model.communication_model import manage_user_data
 from Model.communication_model import manage_conversation
+from Model.communication_model import manage_ai_assistant
+from Model.communication_model import get_personal_history
 from Model.communication_model import clean_db
 
 
@@ -21,7 +26,9 @@ username = 'vihanpereraux'
 
 # GET
 @app.route("/", methods=['GET'])
-def getFunction():  
+def getFunction(): 
+  response = get_chat_history()
+  # return jsonify({ 'response': response }), 201 
   return "Sending the text !!"
 
 # create new user end-point
@@ -66,6 +73,18 @@ def get_response():
                     'message': response, 
                     'db_response': 'db is not updated due to an error, check the local connectivity' }), 201
   
+
+@app.route("/get-ai-assistant-response", methods=['POST'])
+def get_response_2():
+  content = request.args.get('content')
+  response = manage_ai_assistant(content)
+  return jsonify({ 'message': response }), 201
+
+
+@app.route("/get-chat-history", methods=['GET'])
+def get_chat_history():
+  response = get_personal_history()
+  return jsonify({ 'response': response }), 201
 
 # clean the conversation history
 @app.route("/clean-conversation-history", methods=['POST'])
