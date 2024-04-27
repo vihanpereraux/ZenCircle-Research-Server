@@ -32,6 +32,7 @@ username = 'vihanpereraux'
 def getFunction(): 
   return jsonify({ 'response': "Flask app is up and running on port 5000 !" })
 
+
 # create new user end-point
 @app.route("/create-user", methods=['GET'])
 def create_user():
@@ -41,6 +42,7 @@ def create_user():
     
   response = manage_user_data(action, username, history)
   return jsonify({ 'response': response }), 201
+
 
 # update user end-point
 @app.route("/update-user", methods=['GET'])
