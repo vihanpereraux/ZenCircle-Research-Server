@@ -1,6 +1,4 @@
-import sys
-sys.setrecursionlimit(10000)
-
+# module import
 from openai import OpenAI
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -9,27 +7,28 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 import json
 
+# functions import
 from Model.communication_model import manage_user_data
 from Model.communication_model import manage_conversation
 from Model.communication_model import manage_ai_assistant
 from Model.communication_model import get_personal_history
 from Model.communication_model import clean_db
+from TTS_Service.text_2_speech_XTTS2 import text_to_speech
 
 
 app = Flask(__name__)
 CORS(app)
 
-#  db init
+#  tinydb init
 db = TinyDB('db.json')
 history = []
 username = 'vihanpereraux'
 
-# GET
+
+# default get end point
 @app.route("/", methods=['GET'])
 def getFunction(): 
-  response = get_chat_history()
-  # return jsonify({ 'response': response }), 201 
-  return "Sending the text !!"
+  return jsonify({ 'response': "Flask app is up and running on port 5000 !" })
 
 # create new user end-point
 @app.route("/create-user", methods=['GET'])
@@ -52,7 +51,7 @@ def update_user():
   return jsonify({ 'response': response }), 201
 
 
-# communication with the lmserver
+# communication with the lmserver - basic req. res. workflow
 @app.route("/get-response", methods=['POST'])
 def get_response():
   content = request.args.get('content')
@@ -72,35 +71,35 @@ def get_response():
     return jsonify({ 
                     'message': response, 
                     'db_response': 'db is not updated due to an error, check the local connectivity' }), 201
-  
 
+
+# communication with the lmserver - ai assistant workflow
 @app.route("/get-ai-assistant-response", methods=['POST'])
 def get_response_2():
   content = request.args.get('content')
   response = manage_ai_assistant(content)
+  resposne = text_to_speech(response)
   return jsonify({ 'message': response }), 201
 
 
+# retrieve the conversation history
 @app.route("/get-chat-history", methods=['GET'])
 def get_chat_history():
   response = get_personal_history()
   return jsonify({ 'response': response }), 201
 
+
 # clean the conversation history
 @app.route("/clean-conversation-history", methods=['POST'])
 def clean_conversation_history():
-  if len(db.all()) == 0:
-    return jsonify({ 'message': 'history alreday cleared' }), 201
+  response = clean_db(username, history)
+  if response:  
+    return jsonify({ 'message': 'history cleared' }), 201
   else:
-    db.truncate()
-    history = []
-    response = clean_db(username, history)
-    if response:  
-      return jsonify({ 'message': 'history cleared' }), 201
-    else:
-      return jsonify({ 'message': 'history not cleared, something happened' }), 500
-
-
+    return jsonify({ 'message': 'history not cleared, something happened' }), 500
+  
+   
+  
 if __name__ == "__main__":
   app.run(debug=True) 
   
