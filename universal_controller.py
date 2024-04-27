@@ -1,6 +1,7 @@
 # module import
+import time
 from openai import OpenAI
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from tinydb import TinyDB, Query
 from pymongo import MongoClient
@@ -14,6 +15,7 @@ from Model.communication_model import manage_ai_assistant
 from Model.communication_model import get_personal_history
 from Model.communication_model import clean_db
 from TTS_Service.text_2_speech_XTTS2 import text_to_speech
+from SPT_Service.speech_2_text import audio_2_text
 
 
 app = Flask(__name__)
@@ -30,6 +32,7 @@ username = 'vihanpereraux'
 def getFunction(): 
   return jsonify({ 'response': "Flask app is up and running on port 5000 !" })
 
+
 # create new user end-point
 @app.route("/create-user", methods=['GET'])
 def create_user():
@@ -40,6 +43,7 @@ def create_user():
   response = manage_user_data(action, username, history)
   return jsonify({ 'response': response }), 201
 
+
 # update user end-point
 @app.route("/update-user", methods=['GET'])
 def update_user():
@@ -49,6 +53,19 @@ def update_user():
   
   response = manage_user_data(action, username, history)
   return jsonify({ 'response': response }), 201
+
+
+# get voice not from the backend
+@app.route("/send-voice-note", methods=['POST']) 
+def send_voice_note():
+  if 'audio' not in request.files:
+        return 'No file part'
+  else:
+    audio_file = request.files['audio']
+    audio_file.save('SPT_Service/uploaded_audio.wav')  # Save the uploaded audio file
+    time.sleep(5)
+    audio_2_text()
+    return 'File uploaded successfully'
 
 
 # communication with the lmserver - basic req. res. workflow
@@ -74,12 +91,13 @@ def get_response():
 
 
 # communication with the lmserver - ai assistant workflow
-@app.route("/get-ai-assistant-response", methods=['POST'])
-def get_response_2():
+@app.route("/get-ai-assistant-response", methods=['GET'])
+def get_AI_assistant_response():
   content = request.args.get('content')
   response = manage_ai_assistant(content)
-  resposne = text_to_speech(response)
-  return jsonify({ 'message': response }), 201
+  text_to_speech(response)
+  voice_note = 'TTS_Service/audio/output.wav'
+  return send_file(voice_note), 201
 
 
 # retrieve the conversation history

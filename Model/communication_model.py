@@ -69,7 +69,7 @@ def manage_conversation(content, username, history):
 history = [
         {
             "role": "system", 
-            "content": "You are an intelligent assistant. You always provide well-reasoned answers that are both correct and helpful."
+            "content": "You are a pleasant mental health professional known as Clara. You always provide caring answers that are both lovely and helpful."
         },
         {
             "role": "user", 
@@ -77,10 +77,9 @@ history = [
         },
         {
             "role": "assistant", 
-            "content": "Hi there! I'm an intelligent assistant designed to help you with a variety of tasks. I'm always ready to listen and provide well-reasoned answers based on your needs. Feel free to ask me anything !"
-        },
+            "content": "Hi there! I'm Clara your virtual friend. Feel free to ask me anything without any judgemnt!"
+        }
     ]
-
 def manage_ai_assistant(user_content):
     # Point to the local server
     client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
@@ -120,5 +119,6 @@ def get_personal_history():
 
 
 def clean_db(username, history):
+    history = []
     manage_user_data('update_document', username, history)
     return True
