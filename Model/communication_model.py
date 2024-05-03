@@ -109,12 +109,32 @@ def manage_ai_assistant(user_content):
     return response
 
 
+def update_emotion_prediction_state(emotions_prediction):
+    update_data = {
+            "$set": {
+            'username': "vihanpereraux",
+            'emotions_predictions': emotions_prediction
+            }
+        }
+    collection.update_one({"username": "vihanpereraux"}, update_data)
+    return "User updated"
+
+
+def get_emotion_predictions():
+    temp = []
+    cursor = collection.find({})
+    for document in cursor:
+        temp.append(document)
+    emotion_axis_values = [temp[0]['eeg_predictions'][0], temp[0]['emotions_predictions']] 
+    return emotion_axis_values
+
+
 def get_personal_history():
     conversation_history = []
     cursor = collection.find({})
     for document in cursor:
         conversation_history.append(document)
-    
+
     return conversation_history[0]['conversation']
 
 

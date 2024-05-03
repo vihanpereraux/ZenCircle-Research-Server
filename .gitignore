@@ -1,5 +1,7 @@
 OpenVoice
 XTTS
+data_process
+utils
 
 # Logs
 logs

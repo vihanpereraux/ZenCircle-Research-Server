@@ -4,7 +4,8 @@ from openai import OpenAI
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from tinydb import TinyDB, Query
-from pymongo import MongoClient
+# from pymongo import Mongllls
+# oClient
 from bson.objectid import ObjectId
 import json
 
@@ -14,6 +15,9 @@ from Model.communication_model import manage_conversation
 from Model.communication_model import manage_ai_assistant
 from Model.communication_model import get_personal_history
 from Model.communication_model import clean_db
+from Model.communication_model import update_emotion_prediction_state
+from Model.communication_model import get_emotion_predictions
+
 from TTS_Service.text_2_speech_XTTS2 import text_to_speech
 from SPT_Service.speech_2_text import audio_2_text
 
@@ -55,7 +59,7 @@ def update_user():
   return jsonify({ 'response': response }), 201
 
 
-# get voice not from the backend
+# get voice note from the backend
 @app.route("/send-voice-note", methods=['POST']) 
 def send_voice_note():
   if 'audio' not in request.files:
@@ -68,26 +72,37 @@ def send_voice_note():
     return 'File uploaded successfully'
 
 
-# communication with the lmserver - basic req. res. workflow
-@app.route("/get-response", methods=['POST'])
-def get_response():
+# get text summarization
+@app.route("/get_text_summary", methods=['GET'])
+def get_text_summary():
   content = request.args.get('content')
-  response = manage_conversation(content, username, history)
-  # updates the temp db
-  db.insert( {'user': content, 'system': response })
+
+  # Point to the local server
+  client = OpenAI(base_url="http://localhost:1235/v1", api_key="lm-studio")
+
+  history = [
+      {"role": "system", "content": "You are an intelligent assistant. just do what user says"},
+      {"role": "user", "content": content},
+  ]
   
-  for item in db:
-    history.append(item)
-  action = "update_document"
-  convo_history_response = manage_user_data(action, username, history)
+  completion = client.chat.completions.create(
+      model="TheBloke/Mistral-7B-Instruct-v0.1-GGUF",
+      messages=history,
+      temperature=0.7,
+      stream=True,
+  )
+
+  new_message = {"role": "assistant", "content": ""}
   
-  if convo_history_response == 'User updated':
-    return jsonify({ 'message': response, 
-                      'db_response': 'db is updated' }), 201
-  else:
-    return jsonify({ 
-                    'message': response, 
-                    'db_response': 'db is not updated due to an error, check the local connectivity' }), 201
+  for chunk in completion:
+      if chunk.choices[0].delta.content:
+          print(chunk.choices[0].delta.content, end="", flush=True)
+          new_message["content"] += chunk.choices[0].delta.content
+
+  history.append(new_message)
+
+  # print(completion.choices[/0].message.content)
+  return jsonify({ 'response': new_message["content"] })
 
 
 # communication with the lmserver - ai assistant workflow
@@ -98,6 +113,23 @@ def get_AI_assistant_response():
   text_to_speech(response)
   voice_note = 'TTS_Service/audio/output.wav'
   return send_file(voice_note), 201
+
+
+# save facial emotions prediction and eeg emotion prediction data
+@app.route("/process_prediction_data", methods=['POST'])
+def process_prediction_data():
+  # facial ones
+  emotions_prediction = request.args.get('emotions_prediction')
+  response = update_emotion_prediction_state(emotions_prediction)
+  if response == "User updated":
+    return jsonify({ 'message': 'user is updated' })
+
+
+# get predictions
+@app.route("/get_predictions", methods=['GET'])
+def get_predictions():
+  response = get_emotion_predictions()
+  return jsonify({ 'response': response })
 
 
 # retrieve the conversation history
